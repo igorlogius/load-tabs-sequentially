@@ -11,7 +11,6 @@
   "manifest_version": 2,
   "name": "sequentialLoad",
   "permissions": [
-    "alarms",
     "tabs",
     "webNavigation"
   ],
