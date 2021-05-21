@@ -1,7 +1,7 @@
 
 (async () => {
 	const manifest = browser.runtime.getManifest();
-	const extId = manifest.name;
+	const extname = manifest.name;
 
 	let queuedTabs = [];
 	let wakingTab = -1;
@@ -13,10 +13,17 @@
 	})());
 
 	function handleCreated(tab) {
-		if(!tab.active) {
+		//console.log('handleCreated');
+		//if(!tab.active) {
 			queuedTabs.push(tab.id);
-		}
+		//}
 	}
+
+	/*
+	function handleCreatedNavigationTarget(){
+		console.log('handleCreatedNavigationTarget');
+	}
+	*/
 
 	function delFromQedTabs(id) {
 		if(queuedTabs.includes(id)) {
@@ -26,7 +33,9 @@
 
 
 	function handleUpdated(tabId, changeInfo, tabInfo){
-		if(changeInfo.url !== undefined 
+		if(
+			!tabInfo.active
+			&& changeInfo.url !== undefined 
 			&& queuedTabs.includes(tabId) 
 			&& !changeInfo.url.startsWith("moz-extension://") 
 			&& !changeInfo.url.startsWith("about:") 
@@ -66,25 +75,45 @@
 
 	async function checkManagedTabs() {
 
-		if(queuedTabs.length < 1) {
-			return
-		}
-		const tid = queuedTabs[0];
+		if(queuedTabs.length > 0) {
+			const tid = queuedTabs[0];
 
-		if(wakingTab === tid){
-			//console.log('blocking lock on wakingTab ', tabId);
-			return;
-		}
-		const tab = await browser.tabs.get(tid);
+			if(wakingTab !== tid){
+				//console.log('blocking lock on wakingTab ', tabId);
+				const tab = await browser.tabs.get(tid);
 
-		if(!tab.url.startsWith(browser.extension.getURL("/tab.html?url="))){
-			return;
+				if(tab.url.startsWith(browser.extension.getURL("/tab.html?url="))){
+					wakingTab = tid;
+					//console.log('set lock on wakingTab ', tid);
+					delFromQedTabs(tid);
+					//console.log('started loading ', tab.url.split("/tab.html?url=")[1]);
+					browser.tabs.update(tid, { url: tab.url.split("/tab.html?url=")[1] });
+
+
+				}
+			}
 		}
-		wakingTab = tid;
-		//console.log('set lock on wakingTab ', tid);
-		delFromQedTabs(tid);
-		//console.log('started loading ', tab.url.split("/tab.html?url=")[1]);
-		browser.tabs.update(tid, { url: tab.url.split("/tab.html?url=")[1] });
+
+
+	const delaytime = (await (async () => {
+		try {
+			let tmp = await getFromStorage('number','delay', 1500);
+			//console.log('tmp ', typeof tmp);
+
+			tmp = parseInt(tmp);
+			if(typeof tmp === 'number') {
+				if(tmp > 999){
+					return tmp;
+				}
+			}
+		}catch(e){
+			console.error(e);
+		}
+		return 1500;
+
+	})());
+		console.log(delaytime);
+		setTimeout(checkManagedTabs,delaytime);
 	}
 
 
@@ -95,6 +124,11 @@
 	browser.webNavigation.onCompleted.addListener(onCompleted);
 	browser.tabs.onRemoved.addListener(handleRemoved);
 
-	setInterval(checkManagedTabs, 1500);
+	async function getFromStorage(type,id,fallback) {
+		let tmp = await browser.storage.local.get(id);
+		return (typeof tmp[id] === type) ? tmp[id] : fallback;
+	}
+
+	checkManagedTabs();
 
 })();
