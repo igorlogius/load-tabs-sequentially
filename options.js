@@ -28,7 +28,7 @@ function onChange(evt) {
 
 	browser.storage.local.set(obj).catch(console.error);
 
-	browser.runtime.reload();
+	//browser.runtime.reload();
 }
 
 [ "delay" ].map( (id) => {
