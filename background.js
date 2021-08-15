@@ -39,7 +39,7 @@
 			&& queuedTabs.includes(tabId) 
 			&& !changeInfo.url.startsWith("moz-extension://") 
 			&& !changeInfo.url.startsWith("about:") 
-			&& !changeInfo.url.startsWith(browser.extension.getURL("/tab.html?url=")) 
+			&& !changeInfo.url.startsWith(browser.runtime.getURL("/tab.html?url=")) 
 		){
 			browser.tabs.update(tabId, { url: "tab.html?url=" + changeInfo.url });
 		}
@@ -47,7 +47,7 @@
 
 	async function handleActivated(activeInfo){
 		const tab = await browser.tabs.get(activeInfo.tabId);
-		if(tab.url.startsWith(browser.extension.getURL("/tab.html?url="))){
+		if(tab.url.startsWith(browser.runtime.getURL("/tab.html?url="))){
 
 			delFromQedTabs(activeInfo.tabId);
 			browser.tabs.update(activeInfo.tabId, {
@@ -67,7 +67,7 @@
 	}
 
 	function onCompleted (details) {
-		if(!details.url.startsWith(browser.extension.getURL("/tab.html?url="))){
+		if(!details.url.startsWith(browser.runtime.getURL("/tab.html?url="))){
 			handleRemoved(details.tabId,null);
 			//console.log('finished loading ', details.url);
 		}
@@ -82,7 +82,7 @@
 				//console.log('blocking lock on wakingTab ', tabId);
 				const tab = await browser.tabs.get(tid);
 
-				if(tab.url.startsWith(browser.extension.getURL("/tab.html?url="))){
+				if(tab.url.startsWith(browser.runtime.getURL("/tab.html?url="))){
 					wakingTab = tid;
 					//console.log('set lock on wakingTab ', tid);
 					delFromQedTabs(tid);
